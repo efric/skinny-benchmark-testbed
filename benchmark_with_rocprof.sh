@@ -43,6 +43,7 @@ for vmfb in "${vmfbs[@]}"; do
     $DEVICE \
     --device_allocator=caching \
     --hip_use_streams=true \
+    --benchmark_min_warmup_time=3.0 \
     --module="$vmfb"
   echo
 done
