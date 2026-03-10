@@ -54,11 +54,8 @@ for post in "${POSTFIXES[@]}"; do
       --module="$vmfb" \
       --benchmark_repetitions="$REPS" 2>&1)
 
-    median=$(echo "$output" | grep 'real_time_median' | awk '{print $NF}')
-    if [ -z "$median" ]; then
-      # Try alternate format: value before unit.
-      median=$(echo "$output" | grep 'real_time_median' | grep -oP '[\d.]+\s+\w+$' | head -1)
-    fi
+    # Extract "198 us" from: ...real_time_median        198 us          224 us...
+    median=$(echo "$output" | grep 'real_time_median' | awk '{print $2, $3}')
     results["${prefix},${post}"]="${median:-N/A}"
   done
 done
