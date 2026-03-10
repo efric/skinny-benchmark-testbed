@@ -4,7 +4,7 @@
 #   dump_prefix: prefix for dump directories (default: dump)
 set -e
 
-IREE_COMPILE="${IREE_COMPILE:-iree-compile}"
+IREE_COMPILE="${IREE_COMPILE:-/home/ericfeng/iree_/iree/svmfma/build/tools/iree-compile}"
 TARGET="${TARGET:-gfx942}"
 DUMP_PREFIX="${1:-dump}"
 
@@ -16,6 +16,7 @@ for mlir in skinny_gemm_*.mlir; do
   "$IREE_COMPILE" "$mlir" \
     --iree-hal-target-backends=rocm \
     --iree-rocm-target="$TARGET" \
+    --iree-opt-level=O3 \
     -o "/dev/null" \
     --iree-hal-dump-executable-files-to="$dump_dir"
   echo

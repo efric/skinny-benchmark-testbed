@@ -5,7 +5,7 @@
 #   vmfb_prefix: prefix for output .vmfb filenames (default: none)
 set -e
 
-IREE_COMPILE="${IREE_COMPILE:-iree-compile}"
+IREE_COMPILE="${IREE_COMPILE:-/home/ericfeng/iree_/iree/svmfma/build/tools/iree-compile}"
 TARGET="${TARGET:-gfx942}"
 DUMP_PREFIX="${1:-dump}"
 VMFB_PREFIX="${2:-}"
