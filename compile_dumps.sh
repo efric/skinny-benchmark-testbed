@@ -42,7 +42,7 @@ for PREFIX in "${PREFIXES[@]}"; do
       echo "=== Skipping $dump_dir: no *_benchmark.mlir found ==="
       continue
     fi
-    vmfb="${base}.vmfb"
+    vmfb="${PREFIX}-${base}.vmfb"
     echo "=== Compiling $mlir -> $vmfb ==="
     "$IREE_COMPILE" "$mlir" \
       --iree-hal-target-backends=rocm \

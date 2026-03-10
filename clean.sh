@@ -29,11 +29,11 @@ for PREFIX in "${PREFIXES[@]}"; do
   fi
 done
 
-# Clean .vmfb files.
-vmfbs=(skinny_gemm_*.vmfb)
+# Clean .vmfb files (both prefixed and unprefixed).
+vmfbs=(*skinny_gemm_*.vmfb)
 if [ -f "${vmfbs[0]}" ]; then
-  echo "Removing skinny_gemm_*.vmfb ..."
-  rm -f skinny_gemm_*.vmfb
+  echo "Removing *skinny_gemm_*.vmfb ..."
+  rm -f *skinny_gemm_*.vmfb
 fi
 
 echo "Done."
