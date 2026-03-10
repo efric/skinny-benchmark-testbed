@@ -1,31 +1,46 @@
 #!/bin/bash
-# Run rocprofv3 with iree-benchmark-module for baseline and sparse trick vmfbs.
-# Baseline: baselineskinny_gemm_*.vmfb -> traces/baseline/<name>
-# Sparse trick: skinny_gemm_*.vmfb -> traces/sparsetrick/<name>
+# Run rocprofv3 with iree-benchmark-module on variant vmfbs.
+# Usage: ./benchmark_with_rocprof.sh [postfix...]
+#   postfix: type+shape suffix, e.g. f16_8x13312x16384
+#   If omitted, profiles all available vmfbs.
+#
+# Examples:
+#   ./benchmark_with_rocprof.sh f16_8x13312x16384
+#   ./benchmark_with_rocprof.sh f16_8x13312x16384 f8E4M3FNUZ_8x13312x16384
+#   ./benchmark_with_rocprof.sh   # all
 set -e
 
-for vmfb in baselineskinny_gemm_*.vmfb; do
-  [ -f "$vmfb" ] || continue
-  name="${vmfb%.vmfb}"
-  trace_dir="traces/baseline/${name}"
-  echo "=== Profiling (baseline) $vmfb -> $trace_dir ==="
-  mkdir -p "$trace_dir"
-  rocprofv3 --att -d "$trace_dir" -- iree-benchmark-module \
-    --device=hip://7 \
-    --device_allocator=caching \
-    --hip_use_streams=true \
-    --module="$vmfb"
-  echo
-done
+DEVICE="${DEVICE:---device=hip://7}"
 
-for vmfb in skinny_gemm_*.vmfb; do
+if [ $# -gt 0 ]; then
+  # Build vmfb list from postfix args.
+  vmfbs=()
+  for post in "$@"; do
+    for f in *-skinny_gemm_"${post}".vmfb skinny_gemm_"${post}".vmfb; do
+      [ -f "$f" ] && vmfbs+=("$f")
+    done
+  done
+else
+  vmfbs=(*.vmfb)
+fi
+
+for vmfb in "${vmfbs[@]}"; do
   [ -f "$vmfb" ] || continue
   name="${vmfb%.vmfb}"
-  trace_dir="traces/sparsetrick/${name}"
-  echo "=== Profiling (sparse trick) $vmfb -> $trace_dir ==="
+  # Derive trace subdirectory from the variant prefix.
+  # e.g. vdmfma-half-sg4-skinny_gemm_f16_8x13312x16384 -> traces/vdmfma-half-sg4/skinny_gemm_f16_8x13312x16384
+  if [[ "$name" == *-skinny_gemm_* ]]; then
+    prefix="${name%-skinny_gemm_*}"
+    shape="skinny_gemm_${name##*-skinny_gemm_}"
+    trace_dir="traces/${prefix}/${shape}"
+  else
+    trace_dir="traces/${name}"
+  fi
+
+  echo "=== Profiling $vmfb -> $trace_dir ==="
   mkdir -p "$trace_dir"
   rocprofv3 --att -d "$trace_dir" -- iree-benchmark-module \
-    --device=hip://7 \
+    $DEVICE \
     --device_allocator=caching \
     --hip_use_streams=true \
     --module="$vmfb"
