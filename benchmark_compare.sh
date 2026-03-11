@@ -12,35 +12,15 @@
 #   ./benchmark_compare.sh -p vdmfma-full-sg2 f16_8x13312x16384
 #   ./benchmark_compare.sh   # all variants, all shapes
 
+source "$(dirname "$0")/common.sh"
+
 BENCHMARK="${IREE_BENCHMARK:-iree-benchmark-module}"
 DEVICE="${DEVICE:---device=hip://7}"
 REPS="${REPS:-5}"
 
-ALL_PREFIXES=(
-  vdmfma-full-sg2 vdmfma-full-sg4 vdmfma-half-sg2 vdmfma-half-sg4
-  baseline-full-sg2 baseline-full-sg4 baseline-half-sg2 baseline-half-sg4
-)
-
-# Parse flags and positional arguments.
-SELECTED_PREFIXES=()
-POSTFIXES=()
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -p|--prefix)
-      SELECTED_PREFIXES+=("$2")
-      shift 2
-      ;;
-    *)
-      POSTFIXES+=("$1")
-      shift
-      ;;
-  esac
-done
-
-# Use selected prefixes if provided, otherwise all.
-if [ ${#SELECTED_PREFIXES[@]} -gt 0 ]; then
-  ALL_PREFIXES=("${SELECTED_PREFIXES[@]}")
-fi
+parse_prefix_args "$@"
+apply_prefix_filter
+POSTFIXES=("${REMAINING_ARGS[@]}")
 
 # Discover postfixes from available vmfb files if none given.
 if [ ${#POSTFIXES[@]} -eq 0 ]; then

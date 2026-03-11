@@ -1,28 +1,30 @@
 #!/bin/bash
 # Step 2: Compile dump directories to produce .vmfb files and report MMA stats.
-# Usage: ./compile_dumps.sh [dump_prefix...]
-#   dump_prefix: one or more prefixes (default: all variant prefixes)
+# Usage: ./compile_dumps.sh [-p prefix...] [prefix...]
+#   -p/--prefix: select which variant prefixes to compile (repeatable)
+#   Positional args are also treated as prefixes (for backward compatibility).
+#   If no prefixes given, compiles all variants.
 #
 # Examples:
 #   ./compile_dumps.sh                          # all variants
-#   ./compile_dumps.sh vdmfma-half-sg4          # one variant
-#   ./compile_dumps.sh vdmfma-half-sg4 baseline-half-sg4  # two variants
+#   ./compile_dumps.sh vdmfma-half-sg4          # one variant (positional)
+#   ./compile_dumps.sh -p vdmfma-half-sg4 -p baseline-half-sg4  # two variants
 set -e
+
+source "$(dirname "$0")/common.sh"
 
 IREE_COMPILE="${IREE_COMPILE:-/home/ericfeng/iree_/iree/svmfma/build/tools/iree-compile}"
 TARGET="${TARGET:-gfx942}"
 
-# Default: all known variant prefixes, plus legacy dump/baseline.
-ALL_PREFIXES=(
-  vdmfma-full-sg2 vdmfma-full-sg4 vdmfma-half-sg2 vdmfma-half-sg4
-  baseline-full-sg2 baseline-full-sg4 baseline-half-sg2 baseline-half-sg4
-  dump baseline
-)
+parse_prefix_args "$@"
+# Positional args are also prefixes (backward compatibility).
+SELECTED_PREFIXES+=("${REMAINING_ARGS[@]}")
 
-if [ $# -gt 0 ]; then
-  PREFIXES=("$@")
+# Include legacy prefixes in the default set.
+if [ ${#SELECTED_PREFIXES[@]} -gt 0 ]; then
+  PREFIXES=("${SELECTED_PREFIXES[@]}")
 else
-  PREFIXES=("${ALL_PREFIXES[@]}")
+  PREFIXES=("${ALL_PREFIXES[@]}" dump baseline)
 fi
 
 for PREFIX in "${PREFIXES[@]}"; do

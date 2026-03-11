@@ -1,27 +1,43 @@
 #!/bin/bash
 # Run rocprofv3 with iree-benchmark-module on variant vmfbs.
-# Usage: ./benchmark_with_rocprof.sh [postfix...]
+# Usage: ./benchmark_with_rocprof.sh [-p prefix...] [postfix...]
+#   -p/--prefix: select which variant prefixes to profile (repeatable)
 #   postfix: type+shape suffix, e.g. f16_8x13312x16384
-#   If omitted, profiles all available vmfbs.
+#   If no prefixes given, profiles all variants.
+#   If no postfixes given, profiles all available shapes.
 #
 # Examples:
 #   ./benchmark_with_rocprof.sh f16_8x13312x16384
-#   ./benchmark_with_rocprof.sh f16_8x13312x16384 f8E4M3FNUZ_8x13312x16384
+#   ./benchmark_with_rocprof.sh -p vdmfma-full-sg2
+#   ./benchmark_with_rocprof.sh -p vdmfma-full-sg2 f16_8x13312x16384
 #   ./benchmark_with_rocprof.sh   # all
 set -e
 
+source "$(dirname "$0")/common.sh"
+
 DEVICE="${DEVICE:---device=hip://7}"
 
-if [ $# -gt 0 ]; then
-  # Build vmfb list from postfix args.
+parse_prefix_args "$@"
+POSTFIXES=("${REMAINING_ARGS[@]}")
+
+if [ ${#POSTFIXES[@]} -gt 0 ]; then
   vmfbs=()
-  for post in "$@"; do
+  for post in "${POSTFIXES[@]}"; do
     for f in *-skinny_gemm_"${post}".vmfb skinny_gemm_"${post}".vmfb; do
       [ -f "$f" ] && vmfbs+=("$f")
     done
   done
 else
   vmfbs=(*.vmfb)
+fi
+
+# Filter by prefix.
+if [ ${#SELECTED_PREFIXES[@]} -gt 0 ]; then
+  filtered=()
+  for vmfb in "${vmfbs[@]}"; do
+    matches_prefix "$vmfb" "${SELECTED_PREFIXES[@]}" && filtered+=("$vmfb")
+  done
+  vmfbs=("${filtered[@]}")
 fi
 
 for vmfb in "${vmfbs[@]}"; do
