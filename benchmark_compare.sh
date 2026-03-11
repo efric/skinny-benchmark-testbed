@@ -1,13 +1,16 @@
 #!/bin/bash
 # Benchmark vmfbs across all variants for given shapes and print a comparison table.
-# Usage: ./benchmark_compare.sh [postfix...]
+# Usage: ./benchmark_compare.sh [-p prefix...] [postfix...]
+#   -p/--prefix: select which variant prefixes to benchmark (repeatable)
 #   postfix: type+shape suffix, e.g. f16_8x13312x16384
-#   If omitted, benchmarks all available postfixes.
+#   If no prefixes given, benchmarks all variants.
+#   If no postfixes given, benchmarks all available shapes.
 #
 # Examples:
 #   ./benchmark_compare.sh f16_8x13312x16384
-#   ./benchmark_compare.sh f16_8x13312x16384 f8E4M3FNUZ_8x13312x16384
-#   ./benchmark_compare.sh   # all shapes found
+#   ./benchmark_compare.sh -p vdmfma-full-sg2 -p baseline-full-sg4
+#   ./benchmark_compare.sh -p vdmfma-full-sg2 f16_8x13312x16384
+#   ./benchmark_compare.sh   # all variants, all shapes
 
 BENCHMARK="${IREE_BENCHMARK:-iree-benchmark-module}"
 DEVICE="${DEVICE:---device=hip://7}"
@@ -18,11 +21,29 @@ ALL_PREFIXES=(
   baseline-full-sg2 baseline-full-sg4 baseline-half-sg2 baseline-half-sg4
 )
 
-# Discover postfixes from arguments or from available vmfb files.
-if [ $# -gt 0 ]; then
-  POSTFIXES=("$@")
-else
-  POSTFIXES=()
+# Parse flags and positional arguments.
+SELECTED_PREFIXES=()
+POSTFIXES=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p|--prefix)
+      SELECTED_PREFIXES+=("$2")
+      shift 2
+      ;;
+    *)
+      POSTFIXES+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Use selected prefixes if provided, otherwise all.
+if [ ${#SELECTED_PREFIXES[@]} -gt 0 ]; then
+  ALL_PREFIXES=("${SELECTED_PREFIXES[@]}")
+fi
+
+# Discover postfixes from available vmfb files if none given.
+if [ ${#POSTFIXES[@]} -eq 0 ]; then
   for f in *-skinny_gemm_*.vmfb; do
     [ -f "$f" ] || continue
     post="${f##*skinny_gemm_}"
